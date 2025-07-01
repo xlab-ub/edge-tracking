@@ -30,7 +30,7 @@ A real-time computer vision system that uses a PTZ (Pan-Tilt-Zoom) camera to tra
 
 1. **Clone the repository**
 ```bash
-git clone <repository-url>
+git clone https://github.com/xlab-ub/edge-tracking.git
 cd ptz-camera-tracking
 ```
 
