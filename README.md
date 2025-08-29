@@ -26,61 +26,17 @@ A real-time computer vision system that uses a PTZ (Pan-Tilt-Zoom) camera to tra
 - CUDA and cuDNN (for GPU acceleration)
 - TensorRT (optional, for optimized inference)
 
-## Installation Steps
+## Quick Start
 
-### 1. Python Dependencies Setup
-
-First, install the required Python packages in the correct order:
+### 1. Pull the Docker Image
 
 ```bash
-# Install specific setuptools version to avoid compatibility issues
-pip install "setuptools<66.0.0"
-
-# Install OpenCV for computer vision functionality
-pip install opencv-python
-
-# Upgrade setuptools after OpenCV installation
-pip install --upgrade setuptools
-
-# Install V4L2 for video device access
-pip install v4l2
-
-# Fix V4L2 compatibility issue with Python 3.10+
-sed -i 's/range(\([^)]*\)) + \[\([^]]*\)\]/list(range(\1)) + [\2]/g' /usr/local/lib/python3.10/dist-packages/v4l2.py
-
-# Install specific NumPy version for compatibility
-pip install --upgrade numpy==1.24.3
-
-# Install Twilio for communication features
-pip install twilio
-
-# Install python-dotenv for environment variable management
-pip install dotenv
-```
-
-### 2. X11 Display Setup (If Having XCB Problems)
-
-If you encounter XCB (X11 Connection Block) related issues, configure the display environment:
-
-```bash
-# Set display variable
-export DISPLAY=:1
-
-# Allow X11 connections (run this on the Jetson host)
-DISPLAY=:1 xhost +
-```
-
-**Note:** The `xhost +` command should be run on the Jetson device itself, not inside the Docker container.
-
-### 3. Docker Container Setup
-
-Pull and run the Edge Tracking Docker container:
-
-```bash
-# Pull the edge-tracking Docker image
 docker pull xlabub/edge-tracking
+```
 
-# Run the container with all necessary configurations
+### 2. Run the Container
+
+```bash
 docker run -it \
   --privileged \
   --ipc=host \
@@ -100,50 +56,49 @@ docker run -it \
   xlabub/edge-tracking
 ```
 
-## Docker Run Command Explanation
+### 3. Configure Display (On Jetson Host)
 
-| Parameter | Purpose |
-|-----------|---------|
-| `--privileged` | Grants extended privileges to the container |
-| `--ipc=host` | Uses host IPC namespace for shared memory |
-| `--runtime=nvidia` | Uses NVIDIA container runtime for GPU access |
-| `-e DISPLAY=${DISPLAY}` | Passes display environment for GUI applications |
-| `-e LD_LIBRARY_PATH=...` | Sets library paths for CUDA and system libraries |
-| `-e NVIDIA_VISIBLE_DEVICES=all` | Makes all NVIDIA GPUs available |
-| `-e NVIDIA_DRIVER_CAPABILITIES=all` | Enables all NVIDIA driver capabilities |
-| `-v /tmp/.X11-unix:/tmp/.X11-unix` | Mounts X11 socket for GUI display |
-| `-v /var/lock:/var/lock` | Mounts system lock directory |
-| `-v /opt/nvidia/...` | Mounts NVIDIA profiling tools |
-| `-v /usr/local/cuda...` | Mounts CUDA installation directories |
-| `--network=host` | Uses host network stack |
-| `--device=/dev/video0:/dev/video0` | Provides access to camera device |
+Before running the application, configure the X11 display:
 
-## Troubleshooting
+```bash
+export DISPLAY=:1
+DISPLAY=:1 xhost +
+```
 
-### Common Issues
+**Note**: The `xhost +` command disables access control for X11. For security purposes, consider using `xhost +local:docker` instead.
 
-1. **XCB Connection Issues**
-   - Ensure X11 server is running
-   - Run `DISPLAY=:1 xhost +` on the Jetson host
-   - Verify the DISPLAY environment variable is set correctly
+### 4. Run the Edge Tracking Application
 
-2. **Camera Access Problems**
-   - Check if camera is connected and detected: `ls /dev/video*`
-   - Ensure camera permissions are correct
-   - Verify camera is not being used by another process
+Inside the container:
 
-3. **CUDA/GPU Issues**
-   - Verify NVIDIA runtime is installed: `docker info | grep nvidia`
-   - Check GPU availability: `nvidia-smi`
-   - Ensure CUDA paths are correctly mounted
+```bash
+cd edge-tracking
+python main.py
+```
 
-4. **Python Package Conflicts**
-   - Follow the exact installation order provided
-   - The setuptools version constraint is critical for compatibility
+## Configuration Details
 
-## Notes
+### Docker Run Parameters Explained
 
-- The specific NumPy version (1.24.3) is required for compatibility with the edge tracking system
-- The sed command fixes a Python 3.10 compatibility issue in the v4l2 package
-- All CUDA and system library paths are configured for aarch64 (ARM64) architecture
-- The container runs with host networking to simplify communication setup
+- `--privileged`: Grants extended privileges to the container
+- `--ipc=host`: Uses the host's IPC namespace for shared memory
+- `--runtime=nvidia`: Uses the NVIDIA container runtime for GPU access
+- `--network=host`: Uses the host's network stack
+- `--device=/dev/video0:/dev/video0`: Maps the camera device into the container
+
+### Environment Variables
+
+- `DISPLAY`: X11 display configuration
+- `LD_LIBRARY_PATH`: Library search paths for CUDA and Tegra libraries
+- `NVIDIA_VISIBLE_DEVICES=all`: Makes all NVIDIA GPUs visible to the container
+- `NVIDIA_DRIVER_CAPABILITIES=all`: Enables all NVIDIA driver capabilities
+
+### Volume Mounts
+
+The container mounts several important directories:
+
+- `/tmp/.X11-unix`: X11 socket for GUI applications
+- `/var/lock`: System lock files
+- `/opt/nvidia/nsight-systems/2024.5.4`: NVIDIA Nsight Systems profiler
+- `/usr/share/doc/nsight-compute-2025.1.1`: NVIDIA Nsight Compute documentation
+- `/usr/local/cuda` and `/usr/local/cuda-12.6`: CUDA runtime and libraries
