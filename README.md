@@ -26,213 +26,124 @@ A real-time computer vision system that uses a PTZ (Pan-Tilt-Zoom) camera to tra
 - CUDA and cuDNN (for GPU acceleration)
 - TensorRT (optional, for optimized inference)
 
-## Installation
+## Installation Steps
 
-1. **Clone the repository**
+### 1. Python Dependencies Setup
+
+First, install the required Python packages in the correct order:
+
 ```bash
-git clone https://github.com/xlab-ub/edge-tracking.git
-cd ptz-camera-tracking
+# Install specific setuptools version to avoid compatibility issues
+pip install "setuptools<66.0.0"
+
+# Install OpenCV for computer vision functionality
+pip install opencv-python
+
+# Upgrade setuptools after OpenCV installation
+pip install --upgrade setuptools
+
+# Install V4L2 for video device access
+pip install v4l2
+
+# Fix V4L2 compatibility issue with Python 3.10+
+sed -i 's/range(\([^)]*\)) + \[\([^]]*\)\]/list(range(\1)) + [\2]/g' /usr/local/lib/python3.10/dist-packages/v4l2.py
+
+# Install specific NumPy version for compatibility
+pip install --upgrade numpy==1.24.3
+
+# Install Twilio for communication features
+pip install twilio
+
+# Install python-dotenv for environment variable management
+pip install dotenv
 ```
 
-2. **Create a virtual environment**
+### 2. X11 Display Setup (If Having XCB Problems)
+
+If you encounter XCB (X11 Connection Block) related issues, configure the display environment:
+
 ```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+# Set display variable
+export DISPLAY=:1
+
+# Allow X11 connections (run this on the Jetson host)
+DISPLAY=:1 xhost +
 ```
 
-3. **Install dependencies**
+**Note:** The `xhost +` command should be run on the Jetson device itself, not inside the Docker container.
+
+### 3. Docker Container Setup
+
+Pull and run the Edge Tracking Docker container:
+
 ```bash
-pip install -r requirements.txt
+# Pull the edge-tracking Docker image
+docker pull xlabub/edge-tracking
+
+# Run the container with all necessary configurations
+docker run -it \
+  --privileged \
+  --ipc=host \
+  --runtime=nvidia \
+  -e DISPLAY=${DISPLAY} \
+  -e LD_LIBRARY_PATH="/usr/local/cuda-12.6/targets/aarch64-linux/lib:/usr/local/cuda/lib64:/usr/lib/aarch64-linux-gnu:/usr/lib/aarch64-linux-gnu/tegra:/usr/lib/aarch64-linux-gnu/tegra-egl:${LD_LIBRARY_PATH}" \
+  -e NVIDIA_VISIBLE_DEVICES=all \
+  -e NVIDIA_DRIVER_CAPABILITIES=all \
+  -v /tmp/.X11-unix:/tmp/.X11-unix \
+  -v /var/lock:/var/lock \
+  -v /opt/nvidia/nsight-systems/2024.5.4:/opt/nvidia/nsight-systems/2024.5.4 \
+  -v /usr/share/doc/nsight-compute-2025.1.1:/usr/share/doc/nsight-compute-2025.1.1 \
+  -v /usr/local/cuda:/usr/local/cuda \
+  -v /usr/local/cuda-12.6:/usr/local/cuda-12.6 \
+  --network=host \
+  --device=/dev/video0:/dev/video0 \
+  xlabub/edge-tracking
 ```
 
-4. **Download YOLOv11 models**
-```bash
-# The models will be downloaded automatically on first run
-# Or manually download:
-wget https://github.com/ultralytics/assets/releases/download/v8.2.0/yolo11n.pt
-wget https://github.com/ultralytics/assets/releases/download/v8.2.0/yolo11n-pose.pt
-```
+## Docker Run Command Explanation
 
-5. **Set up environment variables**
-
-Create a `.env` file in the project root:
-```env
-# Twilio credentials for WhatsApp alerts
-TWILIO_ACCOUNT_SID=your_account_sid
-TWILIO_AUTH_TOKEN=your_auth_token
-TWILIO_WHATSAPP_NUMBER=whatsapp:+14155238886  # Twilio sandbox number
-YOUR_WHATSAPP_NUMBER=whatsapp:+1234567890     # Your WhatsApp number
-
-# FreeImage.host API key for image hosting
-FREEIMAGE_API_KEY=your_freeimage_api_key
-```
-
-## Configuration
-
-### Camera Settings
-Edit `PTZ_camera.py` to adjust camera parameters:
-```python
-# Resolution
-self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-
-# Frame rate
-self.cap.set(cv2.CAP_PROP_FPS, 30)
-```
-
-### Tracking Parameters
-In `person_tracker.py`:
-```python
-max_disappeared = 15  # Frames before person is considered lost
-max_distance = 100    # Max pixel distance for matching
-active_matching_threshold = 0.95
-reidentification_threshold = 0.065
-```
-
-### Fall Detection Settings
-In `action_classifier.py`:
-```python
-fall_alert_interval = 60  # Seconds between fall alerts
-```
-
-## Usage
-
-### Basic Operation
-
-1. **Run the main program**
-```bash
-python main.py
-```
-
-2. **Keyboard Controls**
-- `t` - Toggle tracking mode on/off
-- `c` - Select closest person to center as tracking target
-- `←/→` - Select previous/next person as tracking target
-- `r` - Reset camera position
-- `q` - Quit
-
-3. **GUI Controls**
-- **Pan Speed**: 0=Left, 1=Stop, 2=Right
-- **Tilt Speed**: 0=Down, 1=Stop, 2=Up
-- **Zoom**: Slide to adjust zoom level
-
-### Tracking Modes
-
-1. **Manual Mode** (default)
-   - Camera stays stationary
-   - All detected persons are shown with IDs
-   - Actions are classified and displayed
-
-2. **Tracking Mode** (press 't')
-   - Camera automatically follows selected target
-   - If target is lost, camera performs search sweep
-   - Can manually select different targets with arrow keys
-
-## System Architecture
-
-### Main Components
-
-1. **main.py**
-   - Entry point and main loop
-   - Handles UI and user input
-   - Coordinates all components
-
-2. **PTZ_camera.py**
-   - Camera control interface
-   - Implements tracking logic
-   - Manages pan/tilt/zoom operations
-
-3. **person_tracker.py**
-   - YOLOv11-based person detection
-   - Feature extraction for re-identification
-   - ID assignment and tracking logic
-
-4. **action_classifier.py**
-   - Pose estimation using YOLOv11-pose
-   - Action classification logic
-   - Fall detection algorithm
-
-5. **twilio_whatsapp.py**
-   - WhatsApp alert functionality
-   - Image upload to cloud service
-
-### Detection Pipeline
-
-1. **Person Detection**: YOLOv11 detects all persons in frame
-2. **Feature Extraction**: HOG + color histograms for each person
-3. **ID Assignment**: Match with existing tracked persons or assign new ID
-4. **Pose Estimation**: Extract keypoints for each person
-5. **Action Classification**: Analyze keypoints to determine action
-6. **Fall Detection**: Special checks for horizontal body position
-7. **Alert System**: Send WhatsApp alert if fall detected
+| Parameter | Purpose |
+|-----------|---------|
+| `--privileged` | Grants extended privileges to the container |
+| `--ipc=host` | Uses host IPC namespace for shared memory |
+| `--runtime=nvidia` | Uses NVIDIA container runtime for GPU access |
+| `-e DISPLAY=${DISPLAY}` | Passes display environment for GUI applications |
+| `-e LD_LIBRARY_PATH=...` | Sets library paths for CUDA and system libraries |
+| `-e NVIDIA_VISIBLE_DEVICES=all` | Makes all NVIDIA GPUs available |
+| `-e NVIDIA_DRIVER_CAPABILITIES=all` | Enables all NVIDIA driver capabilities |
+| `-v /tmp/.X11-unix:/tmp/.X11-unix` | Mounts X11 socket for GUI display |
+| `-v /var/lock:/var/lock` | Mounts system lock directory |
+| `-v /opt/nvidia/...` | Mounts NVIDIA profiling tools |
+| `-v /usr/local/cuda...` | Mounts CUDA installation directories |
+| `--network=host` | Uses host network stack |
+| `--device=/dev/video0:/dev/video0` | Provides access to camera device |
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Camera not found**
-   - Check camera is connected: `ls /dev/video*`
-   - Verify camera permissions: `sudo chmod 666 /dev/video0`
+1. **XCB Connection Issues**
+   - Ensure X11 server is running
+   - Run `DISPLAY=:1 xhost +` on the Jetson host
+   - Verify the DISPLAY environment variable is set correctly
 
-2. **Low FPS**
-   - Reduce resolution in PTZ_camera.py
-   - Enable TensorRT optimization (automatic on first run)
-   - Check GPU is being used: `nvidia-smi`
+2. **Camera Access Problems**
+   - Check if camera is connected and detected: `ls /dev/video*`
+   - Ensure camera permissions are correct
+   - Verify camera is not being used by another process
 
-3. **WhatsApp alerts not working**
-   - Verify Twilio credentials in .env file
-   - Ensure phone number is verified with Twilio
-   - Check internet connection
+3. **CUDA/GPU Issues**
+   - Verify NVIDIA runtime is installed: `docker info | grep nvidia`
+   - Check GPU availability: `nvidia-smi`
+   - Ensure CUDA paths are correctly mounted
 
-4. **Tracking loses person frequently**
-   - Adjust `max_disappeared` parameter
-   - Increase `active_matching_threshold`
-   - Improve lighting conditions
+4. **Python Package Conflicts**
+   - Follow the exact installation order provided
+   - The setuptools version constraint is critical for compatibility
 
-### Debug Mode
+## Notes
 
-Enable verbose output by modifying print statements in the code or adding debug flags.
-
-## Performance Optimization
-
-1. **TensorRT Acceleration**
-   - Models are automatically exported to TensorRT on first run
-   - Creates `.engine` files for faster inference
-
-2. **Resolution vs Speed Trade-off**
-   - 640x480: ~30 FPS on modern GPU
-   - 1280x720: ~15-20 FPS
-   - 1920x1080: ~8-12 FPS
-
-3. **Feature Extraction Optimization**
-   - Adjust histogram bins in person_tracker.py
-   - Reduce HOG feature dimensions
-
-## Future Improvements
-
-- [ ] Add support for multiple camera switching
-- [ ] Implement zone-based alerts
-- [ ] Add person counting statistics
-- [ ] Create web interface for remote monitoring
-- [ ] Support for additional action types
-- [ ] Integration with home automation systems
-
-## License
-
-[Specify your license here]
-
-## Acknowledgments
-
-- YOLOv11 by Ultralytics
-- OpenCV community
-- Twilio for WhatsApp API
-
-
-pip install "setuptools<66.0.0" 
-pip install opencv-python
-pip install --upgrade setuptools
-pip install v4l2
-sed -i 's/range(\([^)]*\)) + \[\([^]]*\)\]/list(range(\1)) + [\2]/g' /usr/local/lib/python3.10/dist-packages/v4l2.py
-pip install --upgrade numpy==1.24.3
-pip install twilio
-pip install dotenv
+- The specific NumPy version (1.24.3) is required for compatibility with the edge tracking system
+- The sed command fixes a Python 3.10 compatibility issue in the v4l2 package
+- All CUDA and system library paths are configured for aarch64 (ARM64) architecture
+- The container runs with host networking to simplify communication setup
