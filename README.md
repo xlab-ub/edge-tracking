@@ -29,48 +29,53 @@ A real-time computer vision system that uses a PTZ (Pan-Tilt-Zoom) camera to tra
 ## Quick Start
 
 ### 1. Pull the Docker Image
-
 ```bash
 docker pull xlabub/edge-tracking
 ```
 
 ### 2. Run the Container
-
 ```bash
 docker run -it \
-  --privileged \
-  --ipc=host \
-  --runtime=nvidia \
-  -e DISPLAY=${DISPLAY} \
-  -e LD_LIBRARY_PATH="/usr/local/cuda-12.6/targets/aarch64-linux/lib:/usr/local/cuda/lib64:/usr/lib/aarch64-linux-gnu:/usr/lib/aarch64-linux-gnu/tegra:/usr/lib/aarch64-linux-gnu/tegra-egl:${LD_LIBRARY_PATH}" \
-  -e NVIDIA_VISIBLE_DEVICES=all \
-  -e NVIDIA_DRIVER_CAPABILITIES=all \
-  -v /tmp/.X11-unix:/tmp/.X11-unix \
-  -v /var/lock:/var/lock \
-  -v /opt/nvidia/nsight-systems/2024.5.4:/opt/nvidia/nsight-systems/2024.5.4 \
-  -v /usr/share/doc/nsight-compute-2025.1.1:/usr/share/doc/nsight-compute-2025.1.1 \
-  -v /usr/local/cuda:/usr/local/cuda \
-  -v /usr/local/cuda-12.6:/usr/local/cuda-12.6 \
-  --network=host \
-  --device=/dev/video0:/dev/video0 \
-  xlabub/edge-tracking
+ --privileged \
+--ipc=host \
+ --runtime=nvidia \
+-e DISPLAY=${DISPLAY} \
+ -e LD_LIBRARY_PATH="/usr/local/cuda-12.6/targets/aarch64-linux/lib:/usr/local/cuda/lib64:/usr/lib/aarch64-linux-gnu:/usr/lib/aarch64-linux-gnu/tegra:/usr/lib/aarch64-linux-gnu/tegra-egl:${LD_LIBRARY_PATH}" \
+-e NVIDIA_VISIBLE_DEVICES=all \
+ -e NVIDIA_DRIVER_CAPABILITIES=all \
+-v /tmp/.X11-unix:/tmp/.X11-unix \
+ -v /var/lock:/var/lock \
+-v /opt/nvidia/nsight-systems/2024.5.4:/opt/nvidia/nsight-systems/2024.5.4 \
+ -v /usr/share/doc/nsight-compute-2025.1.1:/usr/share/doc/nsight-compute-2025.1.1 \
+-v /usr/local/cuda:/usr/local/cuda \
+ -v /usr/local/cuda-12.6:/usr/local/cuda-12.6 \
+--network=host \
+ --device=/dev/video0:/dev/video0 \
+xlabub/edge-tracking
 ```
 
 ### 3. Configure Display (On Jetson Host)
-
-Before running the application, configure the X11 display:
-
+Before running the application, configure the X11 display on the Jetson host:
 ```bash
-export DISPLAY=:1
 DISPLAY=:1 xhost +
 ```
 
 **Note**: The `xhost +` command disables access control for X11. For security purposes, consider using `xhost +local:docker` instead.
 
-### 4. Run the Edge Tracking Application
+### 4. Access the Docker Container
+First, get the container ID and exec into the running container:
+```bash
+docker exec -it [docker id] bash
+```
 
+### 5. Configure Display (Inside Docker Container)
+Set the display environment variable inside the Docker container:
+```bash
+export DISPLAY=:1
+```
+
+### 6. Run the Edge Tracking Application
 Inside the container:
-
 ```bash
 cd edge-tracking
 python main.py
@@ -79,7 +84,6 @@ python main.py
 ## Configuration Details
 
 ### Docker Run Parameters Explained
-
 - `--privileged`: Grants extended privileges to the container
 - `--ipc=host`: Uses the host's IPC namespace for shared memory
 - `--runtime=nvidia`: Uses the NVIDIA container runtime for GPU access
@@ -87,16 +91,13 @@ python main.py
 - `--device=/dev/video0:/dev/video0`: Maps the camera device into the container
 
 ### Environment Variables
-
 - `DISPLAY`: X11 display configuration
 - `LD_LIBRARY_PATH`: Library search paths for CUDA and Tegra libraries
 - `NVIDIA_VISIBLE_DEVICES=all`: Makes all NVIDIA GPUs visible to the container
 - `NVIDIA_DRIVER_CAPABILITIES=all`: Enables all NVIDIA driver capabilities
 
 ### Volume Mounts
-
 The container mounts several important directories:
-
 - `/tmp/.X11-unix`: X11 socket for GUI applications
 - `/var/lock`: System lock files
 - `/opt/nvidia/nsight-systems/2024.5.4`: NVIDIA Nsight Systems profiler
