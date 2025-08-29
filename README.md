@@ -226,3 +226,13 @@ Enable verbose output by modifying print statements in the code or adding debug 
 - YOLOv11 by Ultralytics
 - OpenCV community
 - Twilio for WhatsApp API
+
+
+pip install "setuptools<66.0.0" 
+pip install opencv-python
+pip install --upgrade setuptools
+pip install v4l2
+sed -i 's/range(\([^)]*\)) + \[\([^]]*\)\]/list(range(\1)) + [\2]/g' /usr/local/lib/python3.10/dist-packages/v4l2.py
+pip install --upgrade numpy==1.24.3
+pip install twilio
+pip install dotenv
