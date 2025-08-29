@@ -4,15 +4,17 @@
   "runArgs": [
     "--ipc=host",
     "--runtime=nvidia",
-    "--privileged",
     "-e", "DISPLAY=${env:DISPLAY}",
+    "-e", "LD_LIBRARY_PATH=/usr/local/cuda/lib64:/usr/lib/aarch64-linux-gnu/tegra:/usr/lib/aarch64-linux-gnu/tegra-egl:${LD_LIBRARY_PATH}",
     "-v", "/tmp/.X11-unix:/tmp/.X11-unix",
     "-v", "/var/lock:/var/lock",
     "-v", "/opt/nvidia/nsight-systems/2024.5.4:/opt/nvidia/nsight-systems/2024.5.4",
     "-v", "/usr/share/doc/nsight-compute-2025.1.1:/usr/share/doc/nsight-compute-2025.1.1",
     "-v", "/usr/local/cuda:/usr/local/cuda",
-    "-v", "/dev:/dev",
-    "--network=host"
+    "-v", "/usr/lib/aarch64-linux-gnu/tegra:/usr/lib/aarch64-linux-gnu/tegra:ro",
+    "-v", "/usr/lib/aarch64-linux-gnu/tegra-egl:/usr/lib/aarch64-linux-gnu/tegra-egl:ro",
+    "--network=host",
+    "--device=/dev/video0:/dev/video0"
   ],
   "customizations": {
     "vscode": {
