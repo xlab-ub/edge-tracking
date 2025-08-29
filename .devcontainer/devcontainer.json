@@ -14,9 +14,9 @@
     "-v", "/usr/share/doc/nsight-compute-2025.1.1:/usr/share/doc/nsight-compute-2025.1.1",
     "-v", "/usr/local/cuda:/usr/local/cuda",
     "-v", "/usr/local/cuda-12.6:/usr/local/cuda-12.6",
-    "-v", "/usr/lib/aarch64-linux-gnu:/usr/lib/aarch64-linux-gnu:ro",
-    "-v", "/usr/lib/aarch64-linux-gnu/tegra:/usr/lib/aarch64-linux-gnu/tegra:ro",
-    "-v", "/usr/lib/aarch64-linux-gnu/tegra-egl:/usr/lib/aarch64-linux-gnu/tegra-egl:ro",
+    "-v", "/usr/lib/aarch64-linux-gnu:/usr/lib/aarch64-linux-gnu",
+    "-v", "/usr/lib/aarch64-linux-gnu/tegra:/usr/lib/aarch64-linux-gnu/tegra",
+    "-v", "/usr/lib/aarch64-linux-gnu/tegra-egl:/usr/lib/aarch64-linux-gnu/tegra-egl",
     "--network=host",
     "--device=/dev/video0:/dev/video0"
   ],
